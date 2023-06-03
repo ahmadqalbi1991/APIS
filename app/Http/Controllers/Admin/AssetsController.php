@@ -7,6 +7,7 @@ use App\Customer;
 use App\Imports\AssetImport;
 use App\User;
 use App\UserAddress;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Excel;
@@ -29,7 +30,29 @@ class AssetsController extends Controller
      * @return \Illuminate\Http\RedirectResponse
      */
     public function importAssets(Request $request) {
-        Excel::import(new AssetImport($request->get('user_id')), $request->file('file')->store('temp'));
+        $collection = Excel::toArray(new AssetImport(), $request->file('file')->store('temp'));
+        $items = $collection[0];
+        $assets = [];
+        foreach ($items as $item) {
+            if ($item[0] !== 'Date Time' && $item[0] !== 'Audit Report' && $item[0]) {
+                $assets[] = [
+                    'manufacture' => $item[2],
+                    'model' => $item[1],
+                    'cpu_manufacture' => $item[3],
+                    'asset_tag' => $item[9],
+                    'serial' => $item[6],
+                    'category' => $item[12],
+                    'qty' => $item[13],
+                    'status' => $item[14],
+                    'user_id' => $request->get('user_id'),
+                    'memory_capacity' => $item[4],
+                    'hard_drive_capacity' => $item[5],
+                    'created_at' => Carbon::now(),
+                    'updated_at' => Carbon::now()
+                ];
+            }
+        }
+        Asset::insert($assets);
         return back();
     }
 
